@@ -1,31 +1,32 @@
+from fastapi import FastAPI, Request
+import httpx
 import os
-import requests
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-import logging
 
-logging.basicConfig(level=logging.INFO)
 app = FastAPI()
 
-# Read credentials from env vars
-CLIENT_ID = os.environ.get("EPIDEMIC_CLIENT_ID")
-CLIENT_SECRET = os.environ.get("EPIDEMIC_CLIENT_SECRET")
+EPIDEMIC_CLIENT_ID = os.getenv("EPIDEMIC_CLIENT_ID")
+EPIDEMIC_CLIENT_SECRET = os.getenv("EPIDEMIC_CLIENT_SECRET")
+BASE_URL = "https://api.epidemicsound.com/v1"
 
-@app.get("/partner-token")
-def partner_token():
-    if not CLIENT_ID or not CLIENT_SECRET:
-        return JSONResponse(status_code=500, content={"error": "Client ID or Secret not set"})
+@app.post("/")
+async def proxy(request: Request):
+    body = await request.json()
+    endpoint = body.get("endpoint")
+    params = body.get("params", {})
 
-    url = "https://api.epidemicsound.com/v1/partner/token"
-    data = {"grant_type": "client_credentials", "client_id": CLIENT_ID, "client_secret": CLIENT_SECRET}
+    if not endpoint:
+        return {"error": "Missing 'endpoint'"}
 
-    try:
-        resp = requests.post(url, data=data, timeout=10)
-        resp.raise_for_status()
-        return resp.json()
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Partner token request failed: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    url = f"{BASE_URL}/{endpoint}"
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            url,
+            params=params,
+            auth=(EPIDEMIC_CLIENT_ID, EPIDEMIC_CLIENT_SECRET),
+        )
+        return response.json()
+
 
 @app.get("/tracks/{track_id}")
 def get_track(track_id: str):
