@@ -17,15 +17,15 @@ async def proxy(request: Request):
     if not endpoint:
         return {"error": "Missing 'endpoint'"}
 
-    url = f"{BASE_URL}/{endpoint}"
+url = f"{BASE_URL}/{endpoint}"  # e.g., .../tracks
+async with httpx.AsyncClient() as client:
+    response = await client.get(
+        url,
+        params=params,  # params becomes query string
+        auth=(EPIDEMIC_CLIENT_ID, EPIDEMIC_CLIENT_SECRET),
+    )
+    return response.json()
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            url,
-            params=params,
-            auth=(EPIDEMIC_CLIENT_ID, EPIDEMIC_CLIENT_SECRET),
-        )
-        return response.json()
 
 
 @app.get("/tracks/{track_id}")
