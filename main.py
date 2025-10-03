@@ -26,8 +26,6 @@ async with httpx.AsyncClient() as client:
     )
     return response.json()
 
-
-
 @app.get("/tracks/{track_id}")
 def get_track(track_id: str):
     token_resp = partner_token()
