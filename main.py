@@ -6,7 +6,7 @@ app = FastAPI()
 
 EPIDEMIC_CLIENT_ID = os.getenv("EPIDEMIC_CLIENT_ID")
 EPIDEMIC_CLIENT_SECRET = os.getenv("EPIDEMIC_CLIENT_SECRET")
-BASE_URL = "https://api.epidemicsound.com/v1"
+BASE_URL = "https://partner-content-api.epidemicsound.com"
 
 @app.post("/")
 async def proxy(request: Request):
