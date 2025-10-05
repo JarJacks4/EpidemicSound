@@ -4,39 +4,38 @@ import os
 
 app = FastAPI()
 
+# Load your Epidemic Partner credentials from environment variables
 EPIDEMIC_CLIENT_ID = os.getenv("EPIDEMIC_CLIENT_ID")
 EPIDEMIC_CLIENT_SECRET = os.getenv("EPIDEMIC_CLIENT_SECRET")
+
+# Partner Content API base
 BASE_URL = "https://partner-content-api.epidemicsound.com"
 
 @app.post("/")
 async def proxy(request: Request):
     body = await request.json()
-    endpoint = body.get("endpoint")
-    params = body.get("params", {})
+    endpoint = body.get("endpoint")  # e.g., "tracks"
+    params = body.get("params", {})  # e.g., {"per_page":5,"query":"jazz"}
 
     if not endpoint:
-        return {"error": "Missing 'endpoint'"}
+        return {"error": "Missing 'endpoint' in body"}
 
-url = f"{BASE_URL}/{endpoint}"  # e.g., .../tracks
-async with httpx.AsyncClient() as client:
-    response = await client.get(
-        url,
-        params=params,  # params becomes query string
-        auth=(EPIDEMIC_CLIENT_ID, EPIDEMIC_CLIENT_SECRET),
-    )
-    return response.json()
+    url = f"{BASE_URL}/{endpoint}"
 
-@app.get("/tracks/{track_id}")
-def get_track(track_id: str):
-    token_resp = partner_token()
-    if "access_token" not in token_resp:
-        return JSONResponse(status_code=500, content={"error": "Failed to get partner token"})
-
-    headers = {"Authorization": f"Bearer {token_resp['access_token']}"}
     try:
-        resp = requests.get(f"https://api.epidemicsound.com/v1/tracks/{track_id}", headers=headers, timeout=10)
-        resp.raise_for_status()
-        return resp.json()
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Track request failed: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        async with httpx.AsyncClient() as client:
+            # Send GET request to Epidemic with basic auth
+            response = await client.get(
+                url,
+                params=params,  # passes as query string
+                auth=(EPIDEMIC_CLIENT_ID, EPIDEMIC_CLIENT_SECRET)
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as e:
+        return {
+            "status": e.response.status_code,
+            "detail": e.response.text
+        }
+    except Exception as e:
+        return {"error": str(e)}
